@@ -6,43 +6,46 @@ import (
 	"github.com/Shopify/sarama"
 )
 
+const (
+	portaddress = "localhost:9092"
+	topic       = "test"
+)
+
 func main() {
-	fmt.Println("JSMPJ Croporation")
+	fmt.Println("This is Message Producer")
+	producer, err := producerInitlization()
+	if err != nil {
+		panic(err)
+	}
 	var msg1 string
 	for {
 		fmt.Println("Please Enter message you want to Send")
 		fmt.Scanf("%s", &msg1)
-		config := sarama.NewConfig()
-		config.Producer.RequiredAcks = sarama.WaitForAll
-		config.Producer.Retry.Max = 5
-		config.Producer.Return.Successes = true
-
-		// brokers := []string{"192.168.59.103:9092"}
-		brokers := []string{"localhost:9092"}
-		producer, err := sarama.NewSyncProducer(brokers, config)
-		if err != nil {
-			// Should not reach here
-			panic(err)
-		}
-
+		publishMessage(msg1, producer)
 		defer func() {
 			if err := producer.Close(); err != nil {
-				// Should not reach here
 				panic(err)
 			}
 		}()
 
-		topic := "test"
-		msg := &sarama.ProducerMessage{
-			Topic: topic,
-			Value: sarama.StringEncoder(msg1),
-		}
-
-		partition, offset, err := producer.SendMessage(msg)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Printf("Message is stored in topic(%s)/partition(%d)/offset(%d)\n", topic, partition, offset)
 	}
+}
+func producerInitlization() (sarama.SyncProducer, error) {
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Retry.Max = 5
+	config.Producer.Return.Successes = true
+	producer, err := sarama.NewSyncProducer([]string{portaddress}, config)
+	return producer, err
+}
+func publishMessage(message string, producer sarama.SyncProducer) {
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.StringEncoder(message),
+	}
+	partition, offset, err := producer.SendMessage(msg)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Message is stored in topic(%s)/partition(%d)/offset(%d)\n", topic, partition, offset)
 }

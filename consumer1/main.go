@@ -17,7 +17,7 @@ const (
 )
 
 func main() {
-	fmt.Println("This is message consumer")
+	fmt.Println("This is message consumer 1")
 	congroup, err := consumerInitilisation()
 	defer func() {
 		if err := congroup.Close(); err != nil {

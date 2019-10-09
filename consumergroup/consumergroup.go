@@ -10,40 +10,33 @@ import (
 	"github.com/wvanbergen/kafka/consumergroup"
 )
 
-const (
-	portaddress = "localhost:2181"
-	topic       = "test"
-	consugroup  = "consumergroup"
-)
-
 func main() {
 	fmt.Println("This is message consumer")
-	congroup, err := consumerInitilisation()
+	topic := "test"
+	consugroup := "consumergroup"
+	config := consumergroup.NewConfig()
+	config.Offsets.Initial = sarama.OffsetOldest
+	config.Offsets.ProcessingTimeout = 10 * time.Second
+	config.Consumer.Return.Errors = true
+	brokers := []string{"localhost:2181", "localhost:2181"}
+	congroup, err := consumergroup.JoinConsumerGroup(consugroup, []string{topic}, brokers, config)
+	//master, err := sarama.NewConsumer(brokers, config)
+	if err != nil {
+		panic(err)
+	}
 	defer func() {
 		if err := congroup.Close(); err != nil {
 			panic(err)
 		}
 	}()
-	if err != nil {
-		panic(err)
-	}
-	consumeMessage(congroup)
-}
-func consumerInitilisation() (*consumergroup.ConsumerGroup, error) {
-	config := consumergroup.NewConfig()
-	config.Offsets.Initial = sarama.OffsetOldest
-	config.Offsets.ProcessingTimeout = 10 * time.Second
-	config.Consumer.Return.Errors = true
-	congroup, err := consumergroup.JoinConsumerGroup(consugroup, []string{topic}, []string{portaddress}, config)
-	if err != nil {
-		panic(err)
-	}
-	return congroup, err
-}
 
-func consumeMessage(congroup *consumergroup.ConsumerGroup) {
+	// consumer, err := congroup.ConsumePartition(topic, 0, sarama.OffsetOldest)
+	// if err != nil {
+	// 	panic(err)
+	// }
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
+	msgCount := 0
 	doneCh := make(chan struct{})
 	go func() {
 		for {
@@ -68,4 +61,5 @@ func consumeMessage(congroup *consumergroup.ConsumerGroup) {
 		}
 	}()
 	<-doneCh
+	fmt.Println("Processed", msgCount, "messages")
 }
